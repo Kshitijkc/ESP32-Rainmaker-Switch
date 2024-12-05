@@ -34,6 +34,10 @@
 
 static const char *TAG = "app_main";
 static nvs_handle_t nvs_gpio_handle;
+bool RAINMAKER_PIN_18 = DEFAULT_POWER;
+bool RAINMAKER_PIN_19 = DEFAULT_POWER;
+bool RAINMAKER_PIN_25 = DEFAULT_POWER;
+bool RAINMAKER_PIN_26 = DEFAULT_POWER;
 
 /* Callback to handle commands received from the RainMaker cloud */
 static esp_err_t write_cb(const esp_rmaker_device_t *device, const esp_rmaker_param_t *param,
@@ -48,7 +52,7 @@ static esp_err_t write_cb(const esp_rmaker_device_t *device, const esp_rmaker_pa
         ESP_LOGI(TAG, "Received value = %s for %s - %s",
                 val.val.b? "true" : "false", esp_rmaker_device_get_name(device),
                 esp_rmaker_param_get_name(param));
-        app_driver_set_state(gpio_pin_str, val.val.b, nvs_gpio_handle, true);
+        app_driver_set_state(gpio_pin_str, !val.val.b, nvs_gpio_handle, true);
         esp_rmaker_param_update_and_report(param, val);
     }
     return ESP_OK;
@@ -169,9 +173,19 @@ static void gpio_init() {
             nvs_entry_info(it, &info); // Can omit error check if parameters are guaranteed to be non-NULL
             char* key = info.key;
             bool state = app_driver_get_gpio_state(key, nvs_gpio_handle);
+            printf("INIT pin: %s, state: %d\n", key, state);
             app_driver_set_state(key, state, nvs_gpio_handle, false);
             res = nvs_entry_next(&it);
             total_gpio_pin_used++;
+            if(strcmp(key, "18") == 0) {
+                RAINMAKER_PIN_18 = !state;
+            } else if(strcmp(key, "19") == 0) {
+                RAINMAKER_PIN_19 = !state;
+            } else if(strcmp(key, "25") == 0) {
+                RAINMAKER_PIN_25 = !state;
+            } else if(strcmp(key, "26") == 0) {
+                RAINMAKER_PIN_26 = !state;
+            }
         }
         nvs_release_iterator(it);
         printf("Total GPIO pin used: %d\n", total_gpio_pin_used);
@@ -278,10 +292,10 @@ void map_gpio_to_device(esp_rmaker_node_t *node) {
     esp_rmaker_device_add_cb(gpio_device, write_cb, NULL);
 
     esp_rmaker_param_t *name_param = esp_rmaker_name_param_create("name", DEVICE_NAME);
-    esp_rmaker_param_t *power_param_1 = esp_rmaker_power_param_create("On Grid Light", DEFAULT_POWER);
-    esp_rmaker_param_t *power_param_2 = esp_rmaker_power_param_create("Off Grid Light", DEFAULT_POWER);
-    esp_rmaker_param_t *power_param_3 = esp_rmaker_power_param_create("Fan", DEFAULT_POWER);
-    esp_rmaker_param_t *power_param_4 = esp_rmaker_power_param_create("Power Plug", DEFAULT_POWER);
+    esp_rmaker_param_t *power_param_1 = esp_rmaker_power_param_create("On Grid Light", RAINMAKER_PIN_18);
+    esp_rmaker_param_t *power_param_2 = esp_rmaker_power_param_create("Off Grid Light", RAINMAKER_PIN_19);
+    esp_rmaker_param_t *power_param_3 = esp_rmaker_power_param_create("Fan", RAINMAKER_PIN_25);
+    esp_rmaker_param_t *power_param_4 = esp_rmaker_power_param_create("Power Plug", RAINMAKER_PIN_26);
     esp_rmaker_device_add_param(gpio_device, name_param);
     esp_rmaker_device_add_param(gpio_device, power_param_1);
     esp_rmaker_device_add_param(gpio_device, power_param_2);

@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define DEFAULT_POWER  false
+#define DEFAULT_POWER  true
 #define NVS_PARTITION NVS_DEFAULT_PART_NAME
 #define NVS_NAMESPACE "esp32_nmspce"
 #define DEVICE_NAME "Kshitij Room"
